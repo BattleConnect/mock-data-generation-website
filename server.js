@@ -2,10 +2,11 @@ const express = require('express');
 const app = express();
 var bodyParser = require('body-parser');
 var path = require('path');
+var firebase = require('firebase');
 
 const PORT = process.env.PORT || 5000;
 
-app.use(express.bodyParser());
+app.use(bodyParser());
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname + '/index.html'));
