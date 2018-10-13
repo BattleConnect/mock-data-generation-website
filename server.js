@@ -3,7 +3,7 @@ const app = express();
 var bodyParser = require('body-parser');
 var path = require('path');
 var firebase = require('firebase/app');
-require('firebase/database');
+require('firebase/firestore');
 
 const PORT = process.env.PORT || 5000;
 
@@ -33,10 +33,11 @@ var config = {
 	projectId: "battle-connect",
 };
 firebase.initializeApp(config);
-var database = firebase.database();
+var firestore = firebase.firestore();
+var devices = firestore.collection("devices");
 
 function generateSensorData() {
-  database().ref('devices/' + 456).set({
+  devices.doc("456").set({
     sensor_type: "vibration"
   });
 }
