@@ -2,7 +2,7 @@ const express = require('express');
 const app = express();
 var bodyParser = require('body-parser');
 var path = require('path');
-var firebase = require('firebase./app');
+var firebase = require('firebase/app');
 require('firebase/database');
 
 const PORT = process.env.PORT || 5000;
