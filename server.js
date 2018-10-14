@@ -43,7 +43,7 @@ app.listen(PORT, () => {
 // Initialize Firebase
 // TODO: Replace with your project's customized code snippet
 var config = {
-	apiKey: prcoess.env.FIREBASE_APIKEY,
+	apiKey: process.env.FIREBASE_APIKEY,
 	authDomain: "battle-connect.firebaseapp.com",
 	databaseURL: "https://battle-connect.firebaseio.com/",
 	projectId: "battle-connect",
