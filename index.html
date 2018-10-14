@@ -2,21 +2,34 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>MY APP</title>
+  <title>BattleConnect Mock Data Manager</title>
 </head>
 <body>
-	<form method="post" action="/">
-	    <input type="submit">
+	<form method="post" action="/generate-sensor-data">
+		Minimum Latitude: <input type="text" name="minLat" value="33.8163">
+		Maximum Latitude: <input type="text" name="maxLat" value="33.8241">
+		<br>
+		Minimum Longitude: <input type="text" name="minLong" value="66.7715">
+		Maximum Longitude: <input type="text" name="maxLong" value="66.7883">
+		<br>
+		Number of vibration sensors: <input type="text" name="numVibration" value="25">
+		<br>
+		Number of asset sensors: <input type="text" name="numAsset" value="10">
+		<br>
+		Number of heart rate sensors: <input type="text" name="numHeartRate" value="100">
+		<br>
+		Number of moisture sensors: <input type="text" name="numMoisture" value="10">
+		<br>
+		Number of temperature sensors: <input type="text" name="numTemp" value ="10">
+		<br>
+		How long to generate data (min): <input type="text" name="duration" value="10">
+		<br>
+	    <input type="submit" value="Generate Sensor Data">
 	</form>
-	
-	<script src='index.js'></script>
-	
-	<script src="https://www.gstatic.com/firebasejs/5.5.3/firebase.js"></script>
-	
-	<script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-auth.js"></script>
-	<script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-database.js"></script>
-	<script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-firestore.js"></script>
-	<script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-messaging.js"></script>
-	<script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-functions.js"></script>
+
+	<form method="post" action="/delete-sensor-data">
+	    <input type="submit" value="Delete All Sensor Data">
+	</form>
+
 </body>
 </html>
