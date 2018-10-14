@@ -4,6 +4,7 @@ var bodyParser = require('body-parser');
 var path = require('path');
 var firebase = require('firebase/app');
 require('firebase/firestore');
+require('dotenv').config();
 
 const PORT = process.env.PORT || 5000;
 
@@ -42,7 +43,7 @@ app.listen(PORT, () => {
 // Initialize Firebase
 // TODO: Replace with your project's customized code snippet
 var config = {
-	apiKey: "AIzaSyBKNPd_5ZdZiOTKzm75KtOH8aGzNrtFECg",
+	apiKey: prcoess.env.FIREBASE_APIKEY,
 	authDomain: "battle-connect.firebaseapp.com",
 	databaseURL: "https://battle-connect.firebaseio.com/",
 	projectId: "battle-connect",
