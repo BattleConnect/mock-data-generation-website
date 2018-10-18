@@ -75,6 +75,27 @@ function deleteSensorData() {
   deleteCollection(firestore, "sensors", 100);
 }
 
+//returns the entire firestore collection
+function getFirestoreCollection(db, collectionName) {
+  var collectionRef = db.collection(collectionName);
+  var query = collectionRef.orderBy("__id__");
+
+  return new Promise((resolve, reject) => {
+    getCollection(db, query);
+  });
+}
+
+function getCollection(db, query) {
+  query.get()
+      .then((snapshot) => {
+        // Grab all documents
+        snapshot.docs.forEach((doc) => {
+          print("<h1>Hi</h1>")
+        });
+      })
+      .catch(reject);
+}
+
 function deleteCollection(db, collectionPath, batchSize) {
   var collectionRef = db.collection(collectionPath);
   var query = collectionRef.orderBy('__name__').limit(batchSize);
@@ -155,7 +176,16 @@ function pushNotification(id, sender, priority, message) {
   
   // Add the registration tokens of the devices you want to send to
   var registrationTokens = [];
-  registrationTokens.push('el9pillqxd8:APA91bGbcXuFfNH9YpWAnFUxUQAIkfI2fBPs1xKXzh_w8BH2ifu7EpD4C5WlXviitOKxskmbcW2iFh920sWzfkNoskHHsN9OOlu8ZdoHi_zSPpL65jNM6ycOXlTtmXzMWfVNmx0hxIUw');
+  
+
+  //TODO
+  //
+  //
+  //
+  //TODO
+  //currently just grabs the first.  need to loop
+  registrationTokesn.push(getFirestoreCollection(db, "notifications").get("id").get(0));
+  //registrationTokens.push('el9pillqxd8:APA91bGbcXuFfNH9YpWAnFUxUQAIkfI2fBPs1xKXzh_w8BH2ifu7EpD4C5WlXviitOKxskmbcW2iFh920sWzfkNoskHHsN9OOlu8ZdoHi_zSPpL65jNM6ycOXlTtmXzMWfVNmx0hxIUw');
   
   // Send the message
   // ... trying only once
