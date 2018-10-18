@@ -70,6 +70,7 @@ firebase.initializeApp(config);
 var firestore = firebase.firestore();
 var sensors = firestore.collection("sensors");
 var notifications = firestore.collection("notifications");
+var users = firestore.collection("users");
 
 function deleteSensorData() {
   deleteCollection(firestore, "sensors", 100);
@@ -86,11 +87,13 @@ function getFirestoreCollection(db, collectionName) {
 }
 
 function getCollection(db, query) {
+  var collection = [];
+
   query.get()
       .then((snapshot) => {
         // Grab all documents
         snapshot.docs.forEach((doc) => {
-          print("<h1>Hi</h1>")
+          collection.push(doc.data().id)
         });
       })
       .catch(reject);
@@ -176,22 +179,20 @@ function pushNotification(id, sender, priority, message) {
   
   // Add the registration tokens of the devices you want to send to
   var registrationTokens = [];
-  
 
-  //TODO
-  //
-  //
-  //
-  //TODO
-  //currently just grabs the first.  need to loop
-  registrationTokesn.push(getFirestoreCollection(db, "notifications").get("id").get(0));
-  //registrationTokens.push('el9pillqxd8:APA91bGbcXuFfNH9YpWAnFUxUQAIkfI2fBPs1xKXzh_w8BH2ifu7EpD4C5WlXviitOKxskmbcW2iFh920sWzfkNoskHHsN9OOlu8ZdoHi_zSPpL65jNM6ycOXlTtmXzMWfVNmx0hxIUw');
-  
-  // Send the message
-  // ... trying only once
-  sender.sendNoRetry(message, { registrationTokens: registrationTokens }, function(err, response) {
-    if(err) console.error(err);
-    else    console.log(response);
+  //send notifications to all devices
+  users.get().then(snapshot => {
+    snapshot.forEach(doc => {
+      registrationTokens.push(doc.data().id); 
+      console.log(doc.data().id);  
+    });
+
+    // Send the message
+    // ... trying only once
+    sender.sendNoRetry(message, { registrationTokens: registrationTokens }, function(err, response) {
+      if(err) console.error(err);
+      else    console.log(response);
+    });
   });
 }
 
