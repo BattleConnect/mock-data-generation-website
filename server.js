@@ -14,6 +14,10 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname + '/index.html'));
 });
 
+app.get('/notification.html', (req, res) => {
+  res.sendFile(path.join(__dirname + '/notification.html'));
+});
+
 app.post('/generate-sensor-data', (req, res) => {
   res.send(200);
   var minLat = parseFloat(req.body.minLat);
@@ -29,6 +33,20 @@ app.post('/generate-sensor-data', (req, res) => {
   duration = duration * 60 * 1000;
   generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numAsset, numHeartRate, numMoisture, numTemp, duration);
 });
+
+app.post('/generate-notification', (req, res) => {
+  var id = req.body.notificationID;
+  var sender = req.body.sender;
+  var priority = req.body.priority;
+  var message = req.body.message;
+  console.log(id);
+  console.log(sender);
+  console.log(priority);
+  console.log(message);
+
+  generateNotification(id, sender, priority, message);
+  res.sendStatus(200);
+}); 
 
 app.post('/delete-sensor-data', (req, res) => {
   res.send(200);
@@ -51,6 +69,7 @@ var config = {
 firebase.initializeApp(config);
 var firestore = firebase.firestore();
 var sensors = firestore.collection("sensors");
+var notifications = firestore.collection("notifications");
 
 function deleteSensorData() {
   deleteCollection(firestore, "sensors", 100);
@@ -95,6 +114,64 @@ function deleteQueryBatch(db, query, batchSize, resolve, reject) {
         });
       })
       .catch(reject);
+}
+
+function generateNotification(id, sender, priority, message) {
+  console.log("generating notification");
+
+  //send the notification to the device
+  pushNotification(id, sender, priority, message);
+
+  //store the notification from text input in firestore
+  initializeNotification(id, sender,priority, message);
+}
+
+function pushNotification(id, sender, priority, message) {
+  var gcm = require('node-gcm');
+ 
+  // Create a message
+  var message = new gcm.Message({
+      collapseKey: 'demo',
+      priority: 'high',
+      contentAvailable: true,
+      delayWhileIdle: true,
+      timeToLive: 3,
+      restrictedPackageName: "com.cs495.battleelite.battleelite",
+      data: {
+          id: id,
+          sender: sender,
+          priority: priority,
+          message: message
+      },
+      notification: {
+          title: "BattleElite",
+          icon: "ic_launcher_background",
+          body: message
+      }
+  });
+  
+  // Set up the sender with you API key
+  var sender = new gcm.Sender('AAAAL5LrE4o:APA91bGISR2ZHJGZNN-TnghL0Z16a7Uw3TJyZaR2KVdsPYUcEPPFte8yAWOhDJLIVi6UihVoepu0OOs32OptAytOlrww344GQM-6AktG6sustK6455mD0uEjBvvQuq7BsrSt-qCAr5yX');
+  
+  // Add the registration tokens of the devices you want to send to
+  var registrationTokens = [];
+  registrationTokens.push('el9pillqxd8:APA91bGbcXuFfNH9YpWAnFUxUQAIkfI2fBPs1xKXzh_w8BH2ifu7EpD4C5WlXviitOKxskmbcW2iFh920sWzfkNoskHHsN9OOlu8ZdoHi_zSPpL65jNM6ycOXlTtmXzMWfVNmx0hxIUw');
+  
+  // Send the message
+  // ... trying only once
+  sender.sendNoRetry(message, { registrationTokens: registrationTokens }, function(err, response) {
+    if(err) console.error(err);
+    else    console.log(response);
+  });
+}
+
+function initializeNotification(id, sender, priority, message) {
+  notifications.doc().set({
+      id: id,
+      message: message,
+      priority: priority,
+      sender: sender
+  });
 }
 
 function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numAsset, numHeartRate, numMoisture, numTemp, duration) {
@@ -438,6 +515,8 @@ function randn_bm(min, max, skew) {
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
+
+
 
 function initializeVibrationSensor(lat, long, sensorID) {
   sensors.doc().set({
