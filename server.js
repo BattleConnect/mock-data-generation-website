@@ -280,7 +280,7 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
   }
   console.log("initialized temperature sensors");
 
-  var startTime = new Date().getTime();
+  var startTime = Date.now();
 
   var vibrationSensorInterval = setInterval(tripRandomVibrationSensor, 60 * 1000);
   var heartRateSensorInterval = setInterval(updateHeartRateSensors, 15 * 1000);
@@ -290,7 +290,7 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
 
   function tripRandomVibrationSensor() {
     console.log("tripping vibration sensor");
-    if (new Date().getTime() - startTime > duration) {
+    if (Date.now() - startTime > duration) {
       clearInterval(vibrationSensorInterval);
       return;
     }
@@ -314,7 +314,7 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
             var sensorVal = randn_bm(50,250,1);
             sensorVal = Math.round(sensorVal*10)/10;
             sensors.doc().set({
-              Date_Time: new Date(),
+              Date_Time: Date.now(),
               Lat: lat,
               Long: long,
               Sensor_Type: "Vibration",
@@ -330,7 +330,7 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
 
   function updateAssetSensors() {
     console.log("updating asset sensors");
-    if (new Date().getTime() - startTime > duration) {
+    if (Date.now() - startTime > duration) {
       clearInterval(assetSensorInterval);
       return;
     }
@@ -353,7 +353,7 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
               if (battery < 0)
                 battery = 0;
               sensors.doc().set({
-                Date_Time: new Date(),
+                Date_Time: Date.now(),
                 Lat: lat,
                 Long: long,
                 Sensor_Type: "Asset",
@@ -371,7 +371,7 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
 
   function updateHeartRateSensors() {
     console.log("updating heart rate sensors");
-    if (new Date().getTime() - startTime > duration) {
+    if (Date.now() - startTime > duration) {
       clearInterval(heartRateSensorInterval);
       return;
     }
@@ -400,7 +400,7 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
               if (battery < 0)
                 battery = 0;
               sensors.doc().set({
-                Date_Time: new Date(),
+                Date_Time: Date.now(),
                 Lat: lat,
                 Long: long,
                 Sensor_Type: "HeartRate",
@@ -418,7 +418,7 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
 
   function updateMoistureSensors() {
     console.log("updating moisture sensors");
-    if (new Date().getTime() - startTime > duration) {
+    if (Date.now() - startTime > duration) {
       clearInterval(moistureSensorInterval);
       return;
     }
@@ -445,7 +445,7 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
               if (battery < 0)
                 battery = 0;
               sensors.doc().set({
-                Date_Time: new Date(),
+                Date_Time: Date.now(),
                 Lat: lat,
                 Long: long,
                 Sensor_Type: "Moisture",
@@ -463,7 +463,7 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
 
   function updateTempSensors() {
     console.log("updating temp sensors");
-    if (new Date().getTime() - startTime > duration) {
+    if (Date.now() - startTime > duration) {
       clearInterval(tempSensorInterval);
       return;
     }
@@ -490,7 +490,7 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
               if (battery < 0)
                 battery = 0;
               sensors.doc().set({
-                Date_Time: new Date(),
+                Date_Time: Date.now(),
                 Lat: lat,
                 Long: long,
                 Sensor_Type: "Temp",
@@ -554,7 +554,7 @@ function getRandomInt(min, max) {
 
 function initializeVibrationSensor(lat, long, sensorID) {
   sensors.doc().set({
-    Date_Time: new Date(),
+    Date_Time: Date.now(),
     Lat: lat,
     Long: long,
     Sensor_Type: "Vibration",
@@ -567,7 +567,7 @@ function initializeVibrationSensor(lat, long, sensorID) {
 
 function initializeAssetSensor(lat, long, sensorID) {
   sensors.doc().set({
-    Date_Time: new Date(),
+    Date_Time: Date.now(),
     Lat: lat,
     Long: long,
     Sensor_Type: "Asset",
@@ -580,7 +580,7 @@ function initializeAssetSensor(lat, long, sensorID) {
 
 function initializeHeartRateSensor(lat, long, sensorID) {
   sensors.doc().set({
-    Date_Time: new Date(),
+    Date_Time: Date.now(),
     Lat: lat,
     Long: long,
     Sensor_Type: "HeartRate",
@@ -593,7 +593,7 @@ function initializeHeartRateSensor(lat, long, sensorID) {
 
 function initializeMoistureSensor(lat, long, sensorID, moistureVal) {
   sensors.doc().set({
-    Date_Time: new Date(),
+    Date_Time: Date.now(),
     Lat: lat,
     Long: long,
     Sensor_Type: "Moisture",
@@ -606,7 +606,7 @@ function initializeMoistureSensor(lat, long, sensorID, moistureVal) {
 
 function initializeTempSensor(lat, long, sensorID, tempVal) {
   sensors.doc().set({
-    Date_Time: new Date(),
+    Date_Time: Date.now(),
     Lat: lat,
     Long: long,
     Sensor_Type: "Temp",
