@@ -67,7 +67,10 @@ var config = {
 	projectId: "battle-connect",
 };
 firebase.initializeApp(config);
-var firestore = firebase.firestore();
+
+const firestore = firebase.firestore();
+const settings = {/* your settings... */ timestampsInSnapshots: true};
+firestore.settings(settings);
 var sensors = firestore.collection("sensors");
 var notifications = firestore.collection("notifications");
 var users = firestore.collection("users");
@@ -311,7 +314,7 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
             var sensorVal = randn_bm(50,250,1);
             sensorVal = Math.round(sensorVal*10)/10;
             sensors.doc().set({
-              Date_Time: new Date().valueOf() / 1000,
+              Date_Time: new Date(),
               Lat: lat,
               Long: long,
               Sensor_Type: "Vibration",
@@ -350,7 +353,7 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
               if (battery < 0)
                 battery = 0;
               sensors.doc().set({
-                Date_Time: new Date().valueOf() / 1000,
+                Date_Time: new Date(),
                 Lat: lat,
                 Long: long,
                 Sensor_Type: "Asset",
@@ -397,7 +400,7 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
               if (battery < 0)
                 battery = 0;
               sensors.doc().set({
-                Date_Time: new Date().valueOf() / 1000,
+                Date_Time: new Date(),
                 Lat: lat,
                 Long: long,
                 Sensor_Type: "HeartRate",
@@ -442,7 +445,7 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
               if (battery < 0)
                 battery = 0;
               sensors.doc().set({
-                Date_Time: new Date().valueOf() / 1000,
+                Date_Time: new Date(),
                 Lat: lat,
                 Long: long,
                 Sensor_Type: "Moisture",
@@ -487,7 +490,7 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
               if (battery < 0)
                 battery = 0;
               sensors.doc().set({
-                Date_Time: new Date().valueOf() / 1000,
+                Date_Time: new Date(),
                 Lat: lat,
                 Long: long,
                 Sensor_Type: "Temp",
@@ -551,7 +554,7 @@ function getRandomInt(min, max) {
 
 function initializeVibrationSensor(lat, long, sensorID) {
   sensors.doc().set({
-    Date_Time: new Date().valueOf() / 1000,
+    Date_Time: new Date(),
     Lat: lat,
     Long: long,
     Sensor_Type: "Vibration",
@@ -564,7 +567,7 @@ function initializeVibrationSensor(lat, long, sensorID) {
 
 function initializeAssetSensor(lat, long, sensorID) {
   sensors.doc().set({
-    Date_Time: new Date().valueOf() / 1000,
+    Date_Time: new Date(),
     Lat: lat,
     Long: long,
     Sensor_Type: "Asset",
@@ -577,7 +580,7 @@ function initializeAssetSensor(lat, long, sensorID) {
 
 function initializeHeartRateSensor(lat, long, sensorID) {
   sensors.doc().set({
-    Date_Time: new Date().valueOf() / 1000,
+    Date_Time: new Date(),
     Lat: lat,
     Long: long,
     Sensor_Type: "HeartRate",
@@ -590,7 +593,7 @@ function initializeHeartRateSensor(lat, long, sensorID) {
 
 function initializeMoistureSensor(lat, long, sensorID, moistureVal) {
   sensors.doc().set({
-    Date_Time: new Date().valueOf() / 1000,
+    Date_Time: new Date(),
     Lat: lat,
     Long: long,
     Sensor_Type: "Moisture",
@@ -603,7 +606,7 @@ function initializeMoistureSensor(lat, long, sensorID, moistureVal) {
 
 function initializeTempSensor(lat, long, sensorID, tempVal) {
   sensors.doc().set({
-    Date_Time: new Date().valueOf() / 1000,
+    Date_Time: new Date(),
     Lat: lat,
     Long: long,
     Sensor_Type: "Temp",
