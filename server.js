@@ -48,6 +48,25 @@ app.post('/generate-notification', (req, res) => {
   res.sendStatus(200);
 }); 
 
+app.post('/generate-force-tracking-data', (req, res) => {
+  res.send(200);
+  var minLat = parseFloat(req.body.minLat);
+  var minLong = parseFloat(req.body.minLong);
+  var maxLat = parseFloat(req.body.maxLat);
+  var maxLong = parseFloat(req.body.maxLong);
+  var numPlatoons = parseInt(req.body.numPlatoons);
+  var numReconPatrols = parseInt(req.body.numReconPatrols);
+  var numTargets = parseInt(req.body.numTargets);
+  var duration = parseInt(req.body.duration);
+  duration = duration * 60 * 1000;
+  generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons, numReconPatrols, numTargets, duration);
+});
+
+app.post('/delete-force-tracking-data', (req, res) => {
+  res.send(200);
+  deleteForceTrackingData();
+});
+
 app.post('/delete-sensor-data', (req, res) => {
   res.send(200);
   deleteSensorData();
@@ -72,11 +91,16 @@ const firestore = firebase.firestore();
 const settings = {/* your settings... */ timestampsInSnapshots: true};
 firestore.settings(settings);
 var sensors = firestore.collection("sensors");
+var forces = firestore.collection("forces");
 var notifications = firestore.collection("notifications");
 var users = firestore.collection("users");
 
 function deleteSensorData() {
   deleteCollection(firestore, "sensors", 100);
+}
+
+function deleteForceTrackingData() {
+  deleteCollection(firestore, "forces", 100);
 }
 
 //returns the entire firestore collection
@@ -206,6 +230,284 @@ function initializeNotification(id, sender, priority, message) {
       priority: priority,
       sender: sender
   });
+}
+
+function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons, numReconPatrols, numTargets, duration) {
+  console.log("generating force tracking data");
+  var platoons = [];
+  var reconPatrols = [];
+  var targets = [];
+
+  for (i = 0; i < numPlatoons; i++)
+    platoons.push(initializePlatoon(minLat, maxLat, minLong, maxLong));
+  for (i = 0; i < numReconPatrols; i++)
+    reconPatrols.push(initializeReconPatrol(minLat, maxLat, minLong, maxLong));
+  for (i = 0; i < numTargets; i++)
+    targets.push(initializeTarget(minLat, maxLat, minLong, maxLong));
+
+  var startTime = Date.now();
+
+  var platoonInterval = setInterval(updatePlatoons, 30 * 1000);
+  var reconPatrolInterval = setInterval(updateReconPatrols, 15 * 1000);
+  var targetInterval = setInterval(updateTargets, 60 * 1000);
+
+  function updatePlatoons() {
+    console.log("updating platoons");
+    if (Date.now() - startTime > duration) {
+      clearInterval(platoonInterval);
+      return;
+    }
+
+    for (var i = 0; i < platoons.length; i++) {
+      var ID = platoons[i];
+      var query = forces.where("ID", "==", ID).orderBy("Date_Time", "desc").limit(1);
+      (function (ID) {
+        query.get().then(results => {
+          if (!results.empty) {
+            var doc = results.docs[0];
+
+            var name = doc.get("Name");
+
+            var lat = doc.get("Lat");
+            lat = lat + randn_bm(-0.002, 0.002, 1);
+            lat = Math.round(lat * 100000) / 100000;
+            var long = doc.get("Long");
+            long = long + randn_bm(-0.002, 0.002, 1);
+            long = Math.round(long * 100000) / 100000;
+
+            forces.doc().set({
+              Date_Time: Date.now(),
+              IsPlatoon: true,
+              IsReconPatrol: false,
+              IsTarget: false,
+              Name: name,
+              ID: ID,
+              Lat: lat,
+              Long: long,
+              Status: forceStatuses[getRandomInt(0, forceStatuses.length-1)]
+            });
+          }
+        })
+      })(ID);
+    }
+  }
+
+  function updateReconPatrols() {
+    console.log("updating recon patrols");
+    if (Date.now() - startTime > duration) {
+      clearInterval(reconPatrolInterval);
+      return;
+    }
+
+    for (var i = 0; i < reconPatrols.length; i++) {
+      var ID = reconPatrols[i];
+      var query = forces.where("ID", "==", ID).orderBy("Date_Time", "desc").limit(1);
+      (function (ID) {
+        query.get().then(results => {
+          if (!results.empty) {
+            var doc = results.docs[0];
+
+            var name = doc.get("Name");
+
+            var lat = doc.get("Lat");
+            lat = lat + randn_bm(-0.001, 0.001, 1);
+            lat = Math.round(lat * 100000) / 100000;
+            var long = doc.get("Long");
+            long = long + randn_bm(-0.001, 0.001, 1);
+            long = Math.round(long * 100000) / 100000;
+
+            forces.doc().set({
+              Date_Time: Date.now(),
+              IsPlatoon: false,
+              IsReconPatrol: true,
+              IsTarget: false,
+              Name: name,
+              ID: ID,
+              Lat: lat,
+              Long: long,
+              Status: forceStatuses[getRandomInt(0, forceStatuses.length-1)]
+            });
+          }
+        })
+      })(ID);
+    }
+  }
+
+  function updateTargets() {
+    console.log("updating targets");
+    if (Date.now() - startTime > duration) {
+      clearInterval(targetInterval);
+      return;
+    }
+
+    //randomly change status and location of targets
+    for (var i = 0; i < targets.length; i++) {
+      var ID = targets[i];
+      var query = forces.where("ID", "==", ID).orderBy("Date_Time", "desc").limit(1);
+      (function (ID) {
+        query.get().then(results => {
+          if (!results.empty) {
+            var doc = results.docs[0];
+
+            var name = doc.get("Name");
+            var status = doc.get("Status")
+            if (status == "Not captured") {
+              if (Math.random() < 0.5)
+                status == "Captured";
+            }
+
+            var lat = doc.get("Lat");
+            var long = doc.get("Long");
+
+            //randomly change target location
+            if (Math.random() < 0.01) {
+              lat = lat + randn_bm(-0.01, 0.01, 1);
+              lat = Math.round(lat * 100000) / 100000;
+              long = long + randn_bm(-0.01, 0.01, 1);
+              long = Math.round(long * 100000) / 100000;
+            }
+
+            forces.doc().set({
+              Date_Time: Date.now(),
+              IsPlatoon: false,
+              IsReconPatrol: false,
+              IsTarget: true,
+              Name: name,
+              ID: ID,
+              Lat: lat,
+              Long: long,
+              Status: status
+            });
+          }
+        })
+      })(ID);
+    }
+
+    //randomly add new target
+    if (Math.random() < 0.5)
+      initializeTarget();
+  }
+}
+
+var platoonNames = ["Wolfpack", "Scimitar", "Supercharger", "Tropic Lightning", "Cleaver", "Scratpack"];
+var reconPatrolNames = ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"];
+var targetNames = ["AB", "CD", "EF", "GH", "IJ"];
+var platoonCount = 0;
+var reconPatrolCount = 0;
+var targetCount = 0;
+var forceStatuses = ["On standby", "Under fire", "Mobilizing", "Moving towards target"];
+var targetStatuses = ["Captured", "Not captured"];
+
+function initializePlatoon(minLat, maxLat, minLong, maxLong) {
+  var randomLat = minLat + (maxLat - minLat) * Math.random();
+  randomLat = Math.round(randomLat * 100000) / 100000;
+  var randomLong = minLong + (maxLong - minLong) * Math.random();
+  randomLong = Math.round(randomLong * 100000) / 100000;
+  
+  var name = platoonNames[getRandomInt(0, platoonNames.length-1)];
+  name = name + (platoonCount + 1);
+
+  var ID = getNewForceID();
+
+  forces.doc().set({
+    Date_Time: Date.now(),
+    IsPlatoon: true,
+    IsReconPatrol: false,
+    IsTarget: false,
+    Name: name,
+    ID: ID,
+    Lat: randomLat,
+    Long: randomLong,
+    Status: forceStatuses[getRandomInt(0, forceStatuses.length-1)]
+  });
+
+  platoonCount++;
+  return ID;
+}
+
+function initializeReconPatrol(minLat, maxLat, minLong, maxLong) {
+  var randomLat = minLat + (maxLat - minLat) * Math.random();
+  randomLat = Math.round(randomLat * 100000) / 100000;
+  var randomLong = minLong + (maxLong - minLong) * Math.random();
+  randomLong = Math.round(randomLong * 100000) / 100000;
+  
+  var name = reconPatrolNames[getRandomInt(0, reconPatrolNames.length-1)];
+  name = name + (reconPatrolCount + 1);
+
+  var ID = getNewForceID();
+
+  forces.doc().set({
+    Date_Time: Date.now(),
+    IsPlatoon: false,
+    IsReconPatrol: true,
+    IsTarget: false,
+    Name: name,
+    ID: ID,
+    Lat: randomLat,
+    Long: randomLong,
+    Status: forceStatuses[getRandomInt(0, forceStatuses.length-1)]
+  });
+
+  reconPatrolCount++;
+  return ID;
+}
+
+function initializeTarget(minLat, maxLat, minLong, maxLong) {
+  var randomLat = minLat + (maxLat - minLat) * Math.random();
+  randomLat = Math.round(randomLat * 100000) / 100000;
+  var randomLong = minLong + (maxLong - minLong) * Math.random();
+  randomLong = Math.round(randomLong * 100000) / 100000;
+  
+  var name = targetNames[getRandomInt(0, targetNames.length-1)];
+  name = name + (targetCount + 1);
+
+  var ID = getNewForceID();
+
+  forces.doc().set({
+    Date_Time: Date.now(),
+    IsPlatoon: false,
+    IsReconPatrol: false,
+    IsTarget: true,
+    Name: name,
+    ID: ID,
+    Lat: randomLat,
+    Long: randomLong,
+    Status: targetStatuses[getRandomInt(0, targetStatuses.length-1)]
+  });
+
+  targetCount++;
+  return ID;
+}
+
+function getNewForceID() {
+  var randomID = guidGenerator();
+  var exists = false;
+
+  var query = forces.where("ID", "==", randomID);
+  query.get().then(snap => {
+    size = snap.size;
+    if (size > 0)
+     exists = true;
+  })
+
+  while (exists) {
+    randomID = guidGenerator();
+
+    var query = sensors.where("ID", "==", randomID);
+    query.get().then(snap => {
+      size = snap.size;
+      if (size > 0)
+      exists = true;
+    })
+  }
+  return randomID;
+}
+
+function guidGenerator() {
+    var S4 = function() {
+       return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
+    };
+    return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
 }
 
 function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numAsset, numHeartRate, numMoisture, numTemp, duration) {

@@ -5,6 +5,7 @@
   <title>BattleConnect Mock Data Manager</title>
 </head>
 <body>
+	<h3>Sensor data:</h3>
 	<form method="post" action="/generate-sensor-data">
 		Minimum Latitude: <input type="text" name="minLat" value="33.8163">
 		Maximum Latitude: <input type="text" name="maxLat" value="33.8241">
@@ -30,8 +31,31 @@
 	<form method="post" action="/delete-sensor-data">
 	    <input type="submit" value="Delete All Sensor Data">
 	</form>
+	
+	<h3>Forces data:</h3>
+	<form method="post" action="/generate-force-tracking-data">
+		Minimum Latitude: <input type="text" name="minLat" value="33.8163">
+		Maximum Latitude: <input type="text" name="maxLat" value="33.8241">
+		<br>
+		Minimum Longitude: <input type="text" name="minLong" value="66.7715">
+		Maximum Longitude: <input type="text" name="maxLong" value="66.7883">
+		<br>
+		Number of platoons: <input type="text" name="numPlatoons" value="3">
+		<br>
+		Number of recon patrols: <input type="text" name="numReconPatrols" value="5">
+		<br>
+		Number of high value targets: <input type="text" name="numTargets" value="3">
+		<br>
+		How long to generate data (min): <input type="text" name="duration" value="5">
+		<br>
+	    <input type="submit" value="Generate Force Tracking Data">
+	</form>
+	
+	<form method="post" action="/delete-force-tracking-data">
+	    <input type="submit" value="Delete Force Tracking Data">
+	</form>
 
-	<h1><a href="/notification.html">Click to send a notification!</a></h1>
+	<h3><a href="/notification.html">Click to send a notification!</a></h3>
 
 </body>
 </html>
