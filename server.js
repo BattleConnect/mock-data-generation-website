@@ -561,7 +561,7 @@ function initializeEnemyUnit(minLat, maxLat, minLong, maxLong) {
   randomLong = Math.round(randomLong * 100000) / 100000;
   
   var name = enemyUnitNames[getRandomInt(0, enemyUnitNames.length-1)];
-  name = name + (targetCount + 1);
+  name = name + (enemyUnitCount + 1);
 
   var ID = getNewForceID();
 
@@ -590,7 +590,7 @@ function initializePreplannedTarget(minLat, maxLat, minLong, maxLong) {
   randomLong = Math.round(randomLong * 100000) / 100000;
   
   var name = preplannedTargetNames[getRandomInt(0, preplannedTargetNames.length-1)];
-  name = name + (targetCount + 1);
+  name = name + (preplannedTargetCount + 1);
 
   var ID = getNewForceID();
 
