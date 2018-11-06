@@ -55,11 +55,12 @@ app.post('/generate-force-tracking-data', (req, res) => {
   var maxLat = parseFloat(req.body.maxLat);
   var maxLong = parseFloat(req.body.maxLong);
   var numPlatoons = parseInt(req.body.numPlatoons);
-  var numReconPatrols = parseInt(req.body.numReconPatrols);
-  var numTargets = parseInt(req.body.numTargets);
+  var numSquads = parseInt(req.body.numSquads);
+  var numEnemyUnits = parseInt(req.body.numEnemyUnits);
+  var numPreplannedTargets = parseInt(req.body.numPreplannedTargets);
   var duration = parseInt(req.body.duration);
   duration = duration * 60 * 1000;
-  generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons, numReconPatrols, numTargets, duration);
+  generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons, numSquads, numEnemyUnits, numPreplannedTargets, duration);
 });
 
 app.post('/delete-force-tracking-data', (req, res) => {
@@ -232,24 +233,29 @@ function initializeNotification(id, sender, priority, message) {
   });
 }
 
-function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons, numReconPatrols, numTargets, duration) {
+function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons, numSquads, numEnemyUnits, numPreplannedTargets, duration) {
   console.log("generating force tracking data");
   var platoons = [];
-  var reconPatrols = [];
-  var targets = [];
+  var squads = [];
+  var enemyUnits = [];
+  var preplannedTargets = [];
 
+  initializeCompanyHQ(minLat, maxLat, minLong, maxLong);
   for (i = 0; i < numPlatoons; i++)
     platoons.push(initializePlatoon(minLat, maxLat, minLong, maxLong));
-  for (i = 0; i < numReconPatrols; i++)
-    reconPatrols.push(initializeReconPatrol(minLat, maxLat, minLong, maxLong));
-  for (i = 0; i < numTargets; i++)
-    targets.push(initializeTarget(minLat, maxLat, minLong, maxLong));
+  for (i = 0; i < numSquads; i++)
+    squads.push(initializeSquad(minLat, maxLat, minLong, maxLong));
+  for (i = 0; i < numEnemyUnits; i++)
+    enemyUnits.push(initializeEnemyUnit(minLat, maxLat, minLong, maxLong));
+  for (i = 0; i < numPreplannedTargets; i++)
+    preplannedTargets.push(initializePreplannedTarget(minLat, maxLat, minLong, maxLong));
 
   var startTime = Date.now();
 
   var platoonInterval = setInterval(updatePlatoons, 30 * 1000);
-  var reconPatrolInterval = setInterval(updateReconPatrols, 15 * 1000);
-  var targetInterval = setInterval(updateTargets, 60 * 1000);
+  var squadInterval = setInterval(updateSquads, 15 * 1000);
+  var enemyUnitInterval = setInterval(updateEnemyUnits, 60 * 1000);
+  var preplannedTargetInterval = setInterval(updatePreplannedTargets, 60 * 1000);
 
   function updatePlatoons() {
     console.log("updating platoons");
@@ -277,9 +283,11 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
 
             forces.doc().set({
               Date_Time: Date.now(),
+              IsCompanyHQ: false,
               IsPlatoon: true,
-              IsReconPatrol: false,
-              IsTarget: false,
+              IsSquad: false,
+              IsEnemyUnit: false,
+              IsPreplannedTarget: false,
               Name: name,
               ID: ID,
               Lat: lat,
@@ -292,15 +300,15 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
     }
   }
 
-  function updateReconPatrols() {
-    console.log("updating recon patrols");
+  function updateSquads() {
+    console.log("updating squads");
     if (Date.now() - startTime > duration) {
-      clearInterval(reconPatrolInterval);
+      clearInterval(squadInterval);
       return;
     }
 
-    for (var i = 0; i < reconPatrols.length; i++) {
-      var ID = reconPatrols[i];
+    for (var i = 0; i < squads.length; i++) {
+      var ID = squads[i];
       var query = forces.where("ID", "==", ID).orderBy("Date_Time", "desc").limit(1);
       (function (ID) {
         query.get().then(results => {
@@ -318,9 +326,11 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
 
             forces.doc().set({
               Date_Time: Date.now(),
+              IsCompanyHQ: false,
               IsPlatoon: false,
-              IsReconPatrol: true,
-              IsTarget: false,
+              IsSquad: true,
+              IsEnemyUnit: false,
+              IsPreplannedTarget: false,
               Name: name,
               ID: ID,
               Lat: lat,
@@ -333,16 +343,16 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
     }
   }
 
-  function updateTargets() {
-    console.log("updating targets");
+  function updateEnemyUnits() {
+    console.log("updating enemy units");
     if (Date.now() - startTime > duration) {
-      clearInterval(targetInterval);
+      clearInterval(enemyUnitInterval);
       return;
     }
 
     //randomly change status and location of targets
-    for (var i = 0; i < targets.length; i++) {
-      var ID = targets[i];
+    for (var i = 0; i < enemyUnits.length; i++) {
+      var ID = enemyUnits[i];
       var query = forces.where("ID", "==", ID).orderBy("Date_Time", "desc").limit(1);
       (function (ID) {
         query.get().then(results => {
@@ -351,9 +361,64 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
 
             var name = doc.get("Name");
             var status = doc.get("Status")
-            if (status == "Not captured") {
+            if (Math.random() < 0.5)
+              status = enemyUnitStatuses[getRandomInt(0, enemyUnitStatuses.length-1)]
+
+            var lat = doc.get("Lat");
+            var long = doc.get("Long");
+
+            //randomly change target location
+            if (Math.random() < 0.01) {
+              lat = lat + randn_bm(-0.01, 0.01, 1);
+              lat = Math.round(lat * 100000) / 100000;
+              long = long + randn_bm(-0.01, 0.01, 1);
+              long = Math.round(long * 100000) / 100000;
+            }
+
+            forces.doc().set({
+              Date_Time: Date.now(),
+              IsCompanyHQ: false,
+              IsPlatoon: false,
+              IsSquad: false,
+              IsEnemyUnit: true,
+              IsPreplannedTarget: false,
+              Name: name,
+              ID: ID,
+              Lat: lat,
+              Long: long,
+              Status: status
+            });
+          }
+        })
+      })(ID);
+    }
+
+    //randomly add new enemy unit
+    if (Math.random() < 0.5)
+      initializeEnemyUnit();
+  }
+
+  function updatePreplannedTargets() {
+    console.log("updating preplanned targets");
+    if (Date.now() - startTime > duration) {
+      clearInterval(preplannedTargetInterval);
+      return;
+    }
+
+    //randomly change status and location of targets
+    for (var i = 0; i < preplannedTargets.length; i++) {
+      var ID = preplannedTargets[i];
+      var query = forces.where("ID", "==", ID).orderBy("Date_Time", "desc").limit(1);
+      (function (ID) {
+        query.get().then(results => {
+          if (!results.empty) {
+            var doc = results.docs[0];
+
+            var name = doc.get("Name");
+            var status = doc.get("Status")
+            if (status != "Captured") {
               if (Math.random() < 0.5)
-                status == "Captured";
+                status = preplannedTargetStatuses[getRandomInt(0, preplannedTargetStatuses.length-1)]
             }
 
             var lat = doc.get("Lat");
@@ -369,9 +434,11 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
 
             forces.doc().set({
               Date_Time: Date.now(),
+              IsCompanyHQ: false,
               IsPlatoon: false,
-              IsReconPatrol: false,
-              IsTarget: true,
+              IsSquad: false,
+              IsEnemyUnit: true,
+              IsPreplannedTarget: false,
               Name: name,
               ID: ID,
               Lat: lat,
@@ -383,20 +450,51 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
       })(ID);
     }
 
-    //randomly add new target
+    //randomly add new preplanned target
     if (Math.random() < 0.5)
-      initializeTarget();
+      initializePreplannedTarget();
   }
 }
 
-var platoonNames = ["Wolfpack", "Scimitar", "Supercharger", "Tropic Lightning", "Cleaver", "Scratpack"];
-var reconPatrolNames = ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"];
-var targetNames = ["AB", "CD", "EF", "GH", "IJ"];
+var platoonNames = ["Platoon"];
+var squadNames = ["Squad"];
+var enemyUnitNames = ["Enemy"];
+var preplannedTargetNames = ["Target"];
 var platoonCount = 0;
-var reconPatrolCount = 0;
-var targetCount = 0;
-var forceStatuses = ["On standby", "Under fire", "Mobilizing", "Moving towards target"];
-var targetStatuses = ["Captured", "Not captured"];
+var squadCount = 0;
+var enemyUnitCount = 0;
+var preplannedTargetCount = 0;
+var forceStatuses = ["On standby", "Under fire", "Engaged in combat", "Mobilizing", "Moving towards target"];
+var enemyUnitStatuses = ["On the move", "Attacking friendly forces", "Standing still", "Eliminated"];
+var preplannedTargetStatuses = ["Captured", "Not captured", "In contention"];
+
+function initializeCompanyHQ(minLat, maxLat, minLong, maxLong) {
+  var randomLat = minLat + (maxLat - minLat) * Math.random();
+  randomLat = Math.round(randomLat * 100000) / 100000;
+  var randomLong = minLong + (maxLong - minLong) * Math.random();
+  randomLong = Math.round(randomLong * 100000) / 100000;
+  
+  var name = "CompanyHQ";
+
+  var ID = getNewForceID();
+
+  forces.doc().set({
+    Date_Time: Date.now(),
+    IsCompanyHQ: true,
+    IsPlatoon: false,
+    IsSquad: false,
+    IsEnemyUnit: true,
+    IsPreplannedTarget: false,
+    Name: name,
+    ID: ID,
+    Lat: randomLat,
+    Long: randomLong,
+    Status: ""
+  });
+
+  platoonCount++;
+  return ID;
+}
 
 function initializePlatoon(minLat, maxLat, minLong, maxLong) {
   var randomLat = minLat + (maxLat - minLat) * Math.random();
@@ -411,9 +509,11 @@ function initializePlatoon(minLat, maxLat, minLong, maxLong) {
 
   forces.doc().set({
     Date_Time: Date.now(),
+    IsCompanyHQ: false,
     IsPlatoon: true,
-    IsReconPatrol: false,
-    IsTarget: false,
+    IsSquad: false,
+    IsEnemyUnit: false,
+    IsPreplannedTarget: false,
     Name: name,
     ID: ID,
     Lat: randomLat,
@@ -425,22 +525,24 @@ function initializePlatoon(minLat, maxLat, minLong, maxLong) {
   return ID;
 }
 
-function initializeReconPatrol(minLat, maxLat, minLong, maxLong) {
+function initializeSquad(minLat, maxLat, minLong, maxLong) {
   var randomLat = minLat + (maxLat - minLat) * Math.random();
   randomLat = Math.round(randomLat * 100000) / 100000;
   var randomLong = minLong + (maxLong - minLong) * Math.random();
   randomLong = Math.round(randomLong * 100000) / 100000;
   
-  var name = reconPatrolNames[getRandomInt(0, reconPatrolNames.length-1)];
-  name = name + (reconPatrolCount + 1);
+  var name = squadNames[getRandomInt(0, squadNames.length-1)];
+  name = name + (squadCount + 1);
 
   var ID = getNewForceID();
 
   forces.doc().set({
     Date_Time: Date.now(),
+    IsCompanyHQ: false,
     IsPlatoon: false,
-    IsReconPatrol: true,
-    IsTarget: false,
+    IsSquad: false,
+    IsEnemyUnit: true,
+    IsPreplannedTarget: false,
     Name: name,
     ID: ID,
     Lat: randomLat,
@@ -448,34 +550,65 @@ function initializeReconPatrol(minLat, maxLat, minLong, maxLong) {
     Status: forceStatuses[getRandomInt(0, forceStatuses.length-1)]
   });
 
-  reconPatrolCount++;
+  squadCount++;
   return ID;
 }
 
-function initializeTarget(minLat, maxLat, minLong, maxLong) {
+function initializeEnemyUnit(minLat, maxLat, minLong, maxLong) {
   var randomLat = minLat + (maxLat - minLat) * Math.random();
   randomLat = Math.round(randomLat * 100000) / 100000;
   var randomLong = minLong + (maxLong - minLong) * Math.random();
   randomLong = Math.round(randomLong * 100000) / 100000;
   
-  var name = targetNames[getRandomInt(0, targetNames.length-1)];
+  var name = enemyUnitNames[getRandomInt(0, enemyUnitNames.length-1)];
   name = name + (targetCount + 1);
 
   var ID = getNewForceID();
 
   forces.doc().set({
     Date_Time: Date.now(),
+    IsCompanyHQ: false,
     IsPlatoon: false,
-    IsReconPatrol: false,
-    IsTarget: true,
+    IsSquad: false,
+    IsEnemyUnit: true,
+    IsPreplannedTarget: false,
     Name: name,
     ID: ID,
     Lat: randomLat,
     Long: randomLong,
-    Status: targetStatuses[getRandomInt(0, targetStatuses.length-1)]
+    Status: enemyUnitStatuses[getRandomInt(0, enemyUnitStatuses.length-1)]
   });
 
-  targetCount++;
+  enemyUnitCount++;
+  return ID;
+}
+
+function initializePreplannedTarget(minLat, maxLat, minLong, maxLong) {
+  var randomLat = minLat + (maxLat - minLat) * Math.random();
+  randomLat = Math.round(randomLat * 100000) / 100000;
+  var randomLong = minLong + (maxLong - minLong) * Math.random();
+  randomLong = Math.round(randomLong * 100000) / 100000;
+  
+  var name = preplannedTargetNames[getRandomInt(0, preplannedTargetNames.length-1)];
+  name = name + (targetCount + 1);
+
+  var ID = getNewForceID();
+
+  forces.doc().set({
+    Date_Time: Date.now(),
+    IsCompanyHQ: false,
+    IsPlatoon: false,
+    IsSquad: false,
+    IsEnemyUnit: false,
+    IsPreplannedTarget: true,
+    Name: name,
+    ID: ID,
+    Lat: randomLat,
+    Long: randomLong,
+    Status: preplannedTargetStatuses[getRandomInt(0, preplannedTargetStatuses.length-1)]
+  });
+
+  preplannedTargetCount++;
   return ID;
 }
 
