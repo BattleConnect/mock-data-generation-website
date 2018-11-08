@@ -283,11 +283,7 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
 
             forces.doc().set({
               Date_Time: Date.now(),
-              IsCompanyHQ: false,
-              IsPlatoon: true,
-              IsSquad: false,
-              IsEnemyUnit: false,
-              IsPreplannedTarget: false,
+              Type: "Platoon",
               Name: name,
               ID: ID,
               Lat: lat,
@@ -326,11 +322,7 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
 
             forces.doc().set({
               Date_Time: Date.now(),
-              IsCompanyHQ: false,
-              IsPlatoon: false,
-              IsSquad: true,
-              IsEnemyUnit: false,
-              IsPreplannedTarget: false,
+              Type: "Squad",
               Name: name,
               ID: ID,
               Lat: lat,
@@ -377,11 +369,7 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
 
             forces.doc().set({
               Date_Time: Date.now(),
-              IsCompanyHQ: false,
-              IsPlatoon: false,
-              IsSquad: false,
-              IsEnemyUnit: true,
-              IsPreplannedTarget: false,
+              Type: "Enemy Unit",
               Name: name,
               ID: ID,
               Lat: lat,
@@ -434,11 +422,7 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
 
             forces.doc().set({
               Date_Time: Date.now(),
-              IsCompanyHQ: false,
-              IsPlatoon: false,
-              IsSquad: false,
-              IsEnemyUnit: true,
-              IsPreplannedTarget: false,
+              Type: "Preplanned Target",
               Name: name,
               ID: ID,
               Lat: lat,
@@ -480,11 +464,7 @@ function initializeCompanyHQ(minLat, maxLat, minLong, maxLong) {
 
   forces.doc().set({
     Date_Time: Date.now(),
-    IsCompanyHQ: true,
-    IsPlatoon: false,
-    IsSquad: false,
-    IsEnemyUnit: true,
-    IsPreplannedTarget: false,
+    Type: "Company HQ",
     Name: name,
     ID: ID,
     Lat: randomLat,
@@ -509,11 +489,7 @@ function initializePlatoon(minLat, maxLat, minLong, maxLong) {
 
   forces.doc().set({
     Date_Time: Date.now(),
-    IsCompanyHQ: false,
-    IsPlatoon: true,
-    IsSquad: false,
-    IsEnemyUnit: false,
-    IsPreplannedTarget: false,
+    Type: "Platoon",
     Name: name,
     ID: ID,
     Lat: randomLat,
@@ -538,11 +514,7 @@ function initializeSquad(minLat, maxLat, minLong, maxLong) {
 
   forces.doc().set({
     Date_Time: Date.now(),
-    IsCompanyHQ: false,
-    IsPlatoon: false,
-    IsSquad: false,
-    IsEnemyUnit: true,
-    IsPreplannedTarget: false,
+    Type: "Squad",
     Name: name,
     ID: ID,
     Lat: randomLat,
@@ -567,11 +539,7 @@ function initializeEnemyUnit(minLat, maxLat, minLong, maxLong) {
 
   forces.doc().set({
     Date_Time: Date.now(),
-    IsCompanyHQ: false,
-    IsPlatoon: false,
-    IsSquad: false,
-    IsEnemyUnit: true,
-    IsPreplannedTarget: false,
+    Type: "Enemy Unit",
     Name: name,
     ID: ID,
     Lat: randomLat,
@@ -596,11 +564,7 @@ function initializePreplannedTarget(minLat, maxLat, minLong, maxLong) {
 
   forces.doc().set({
     Date_Time: Date.now(),
-    IsCompanyHQ: false,
-    IsPlatoon: false,
-    IsSquad: false,
-    IsEnemyUnit: false,
-    IsPreplannedTarget: true,
+    Type: "Preplanned Target",
     Name: name,
     ID: ID,
     Lat: randomLat,
