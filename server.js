@@ -79,7 +79,6 @@ app.listen(PORT, () => {
 
 
 // Initialize Firebase
-// TODO: Replace with your project's customized code snippet
 var config = {
 	apiKey: process.env.FIREBASE_APIKEY,
 	authDomain: "battle-connect.firebaseapp.com",
@@ -96,10 +95,12 @@ var forces = firestore.collection("forces");
 var notifications = firestore.collection("notifications");
 var users = firestore.collection("users");
 
+//deletes the "sensors" collection in firebase
 function deleteSensorData() {
   deleteCollection(firestore, "sensors", 100);
 }
 
+//delete the "forces" collection in firebase
 function deleteForceTrackingData() {
   deleteCollection(firestore, "forces", 100);
 }
@@ -127,6 +128,7 @@ function getCollection(db, query) {
       .catch(reject);
 }
 
+//delets a collection
 function deleteCollection(db, collectionPath, batchSize) {
   var collectionRef = db.collection(collectionPath);
   var query = collectionRef.orderBy('__name__').limit(batchSize);
@@ -136,6 +138,7 @@ function deleteCollection(db, collectionPath, batchSize) {
   });
 }
 
+//deletes documents from a collection in batches
 function deleteQueryBatch(db, query, batchSize, resolve, reject) {
   query.get()
       .then((snapshot) => {
@@ -168,6 +171,7 @@ function deleteQueryBatch(db, query, batchSize, resolve, reject) {
       .catch(reject);
 }
 
+//sends a notification to a device and stores the notification in firebase
 function generateNotification(id, sender, priority, message) {
   console.log("generating notification");
 
@@ -178,6 +182,7 @@ function generateNotification(id, sender, priority, message) {
   initializeNotification(id, sender,priority, message);
 }
 
+//pushes a notification to a specific device
 function pushNotification(id, sender, priority, message) {
   var gcm = require('node-gcm');
  
@@ -188,7 +193,7 @@ function pushNotification(id, sender, priority, message) {
       contentAvailable: true,
       delayWhileIdle: true,
       timeToLive: 3,
-      restrictedPackageName: "com.cs495.battleelite.battleelite",
+      restrictedPackageName: "com.cs495.battleconnect",
       data: {
           id: id,
           sender: sender,
@@ -224,6 +229,7 @@ function pushNotification(id, sender, priority, message) {
   });
 }
 
+//adds a notification to firebase
 function initializeNotification(id, sender, priority, message) {
   notifications.doc().set({
       id: id,
@@ -233,12 +239,13 @@ function initializeNotification(id, sender, priority, message) {
   });
 }
 
+//generates force data that conforms to the user's specifications
 function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons, numSquads, numEnemyUnits, numPreplannedTargets, duration) {
   console.log("generating force tracking data");
-  var platoons = [];
-  var squads = [];
-  var enemyUnits = [];
-  var preplannedTargets = [];
+  var platoons = []; //ids of generatd platoons
+  var squads = []; //ids of generatd squads
+  var enemyUnits = []; //ids of generatd enemy units
+  var preplannedTargets = []; //ids of generatd targets
 
   initializeCompanyHQ(minLat, maxLat, minLong, maxLong);
   for (i = 0; i < numPlatoons; i++)
@@ -252,20 +259,25 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
 
   var startTime = Date.now();
 
+  //the intervals below determine how often certain forces should push updates to firebase
   var platoonInterval = setInterval(updatePlatoons, 30 * 1000);
   var squadInterval = setInterval(updateSquads, 15 * 1000);
   var enemyUnitInterval = setInterval(updateEnemyUnits, 60 * 1000);
   var preplannedTargetInterval = setInterval(updatePreplannedTargets, 60 * 1000);
 
+  //makes all of the platoons push updates to firebase
   function updatePlatoons() {
     console.log("updating platoons");
+    //stop updating platoons if the user specified duration for generating force data has elapsed
     if (Date.now() - startTime > duration) {
       clearInterval(platoonInterval);
       return;
     }
 
+    //have every platoon push an update
     for (var i = 0; i < platoons.length; i++) {
       var ID = platoons[i];
+      //gets the platoons last update from firebase
       var query = forces.where("ID", "==", ID).orderBy("Date_Time", "desc").limit(1);
       (function (ID) {
         query.get().then(results => {
@@ -274,6 +286,7 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
 
             var name = doc.get("Name");
 
+            //slightly change the platoon's location
             var lat = doc.get("Lat");
             lat = lat + randn_bm(-0.002, 0.002, 1);
             lat = Math.round(lat * 100000) / 100000;
@@ -281,6 +294,7 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
             long = long + randn_bm(-0.002, 0.002, 1);
             long = Math.round(long * 100000) / 100000;
 
+            //push an update to firebase
             forces.doc().set({
               Date_Time: Date.now(),
               Type: "Platoon",
@@ -288,6 +302,7 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
               ID: ID,
               Lat: lat,
               Long: long,
+              //give the platoon a new random status
               Status: forceStatuses[getRandomInt(0, forceStatuses.length-1)]
             });
           }
@@ -296,15 +311,20 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
     }
   }
 
+  //makes all of the squads push updates to firebase
   function updateSquads() {
     console.log("updating squads");
+
+    //stop having squads push updates if the user specified duration for generating force data has elapsed
     if (Date.now() - startTime > duration) {
       clearInterval(squadInterval);
       return;
     }
 
+    //have every squad push an update
     for (var i = 0; i < squads.length; i++) {
       var ID = squads[i];
+      //get the squad's last update from firebase
       var query = forces.where("ID", "==", ID).orderBy("Date_Time", "desc").limit(1);
       (function (ID) {
         query.get().then(results => {
@@ -313,6 +333,7 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
 
             var name = doc.get("Name");
 
+            //slightly change the squad's location
             var lat = doc.get("Lat");
             lat = lat + randn_bm(-0.001, 0.001, 1);
             lat = Math.round(lat * 100000) / 100000;
@@ -320,6 +341,7 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
             long = long + randn_bm(-0.001, 0.001, 1);
             long = Math.round(long * 100000) / 100000;
 
+            //push an update to firebase
             forces.doc().set({
               Date_Time: Date.now(),
               Type: "Squad",
@@ -327,6 +349,7 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
               ID: ID,
               Lat: lat,
               Long: long,
+              //give the squad a new random status
               Status: forceStatuses[getRandomInt(0, forceStatuses.length-1)]
             });
           }
@@ -335,16 +358,19 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
     }
   }
 
+  //have enenmy units push updates to firebase
   function updateEnemyUnits() {
     console.log("updating enemy units");
+    //stop having enemy units push updates to firebase if the user specified duration for generating data has elapsed
     if (Date.now() - startTime > duration) {
       clearInterval(enemyUnitInterval);
       return;
     }
 
-    //randomly change status and location of targets
+    //have every enemy unit push an update to firebase
     for (var i = 0; i < enemyUnits.length; i++) {
       var ID = enemyUnits[i];
+      //get the enemy unit's last update from firebase
       var query = forces.where("ID", "==", ID).orderBy("Date_Time", "desc").limit(1);
       (function (ID) {
         query.get().then(results => {
@@ -353,13 +379,14 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
 
             var name = doc.get("Name");
             var status = doc.get("Status")
+            //randomly change the enemy unit's status half the time
             if (Math.random() < 0.5)
               status = enemyUnitStatuses[getRandomInt(0, enemyUnitStatuses.length-1)]
 
             var lat = doc.get("Lat");
             var long = doc.get("Long");
 
-            //randomly change target location
+            //randomly change the enemy unit's location
             if (Math.random() < 0.01) {
               lat = lat + randn_bm(-0.01, 0.01, 1);
               lat = Math.round(lat * 100000) / 100000;
@@ -367,6 +394,7 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
               long = Math.round(long * 100000) / 100000;
             }
 
+            //push an update to firebase
             forces.doc().set({
               Date_Time: Date.now(),
               Type: "Enemy Unit",
@@ -381,21 +409,24 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
       })(ID);
     }
 
-    //randomly add new enemy unit
+    //randomly add a new enemy unit
     if (Math.random() < 0.5)
       initializeEnemyUnit();
   }
 
+  //have all the preplanned targets push updates to firebase
   function updatePreplannedTargets() {
     console.log("updating preplanned targets");
+    //stop pushing updates if the duration that the user wants data to generate for has elapsed
     if (Date.now() - startTime > duration) {
       clearInterval(preplannedTargetInterval);
       return;
     }
 
-    //randomly change status and location of targets
+    //have every preplanned target push an update to firebase
     for (var i = 0; i < preplannedTargets.length; i++) {
       var ID = preplannedTargets[i];
+      //get the preplanned targets last update from firebase
       var query = forces.where("ID", "==", ID).orderBy("Date_Time", "desc").limit(1);
       (function (ID) {
         query.get().then(results => {
@@ -404,6 +435,7 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
 
             var name = doc.get("Name");
             var status = doc.get("Status")
+            //if the target has not been captured, give it 50% chance of getting a new random status
             if (status != "Captured") {
               if (Math.random() < 0.5)
                 status = preplannedTargetStatuses[getRandomInt(0, preplannedTargetStatuses.length-1)]
@@ -412,7 +444,7 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
             var lat = doc.get("Lat");
             var long = doc.get("Long");
 
-            //randomly change target location
+            //slightly change the target's location
             if (Math.random() < 0.01) {
               lat = lat + randn_bm(-0.01, 0.01, 1);
               lat = Math.round(lat * 100000) / 100000;
@@ -420,6 +452,7 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
               long = Math.round(long * 100000) / 100000;
             }
 
+            //push an update to firebase
             forces.doc().set({
               Date_Time: Date.now(),
               Type: "Preplanned Target",
@@ -434,7 +467,7 @@ function generateForceTrackingData(minLat, minLong, maxLat, maxLong, numPlatoons
       })(ID);
     }
 
-    //randomly add new preplanned target
+    //randomly add new target
     if (Math.random() < 0.5)
       initializePreplannedTarget();
   }
@@ -452,7 +485,9 @@ var forceStatuses = ["On standby", "Under fire", "Engaged in combat", "Mobilizin
 var enemyUnitStatuses = ["On the move", "Attacking friendly forces", "Standing still", "Eliminated"];
 var preplannedTargetStatuses = ["Captured", "Not captured", "In contention"];
 
+//add a new company HQ to firebase
 function initializeCompanyHQ(minLat, maxLat, minLong, maxLong) {
+  //give the company HQ a random location within the allowed bounds
   var randomLat = minLat + (maxLat - minLat) * Math.random();
   randomLat = Math.round(randomLat * 100000) / 100000;
   var randomLong = minLong + (maxLong - minLong) * Math.random();
@@ -462,6 +497,7 @@ function initializeCompanyHQ(minLat, maxLat, minLong, maxLong) {
 
   var ID = getNewForceID();
 
+  //add the company HQ data to firebase
   forces.doc().set({
     Date_Time: Date.now(),
     Type: "Company HQ",
@@ -476,17 +512,21 @@ function initializeCompanyHQ(minLat, maxLat, minLong, maxLong) {
   return ID;
 }
 
+//add a new platoon to firebase
 function initializePlatoon(minLat, maxLat, minLong, maxLong) {
+  //give the platoon a random location within the allowed bounds
   var randomLat = minLat + (maxLat - minLat) * Math.random();
   randomLat = Math.round(randomLat * 100000) / 100000;
   var randomLong = minLong + (maxLong - minLong) * Math.random();
   randomLong = Math.round(randomLong * 100000) / 100000;
   
+  //give the platoon a new random name, e.g., "Platoon1"
   var name = platoonNames[getRandomInt(0, platoonNames.length-1)];
   name = name + (platoonCount + 1);
 
   var ID = getNewForceID();
 
+  //add the platoon data to firebase
   forces.doc().set({
     Date_Time: Date.now(),
     Type: "Platoon",
@@ -501,17 +541,21 @@ function initializePlatoon(minLat, maxLat, minLong, maxLong) {
   return ID;
 }
 
+//add a new squad to firebase
 function initializeSquad(minLat, maxLat, minLong, maxLong) {
+  //give the squad a random location within the allowed bounds
   var randomLat = minLat + (maxLat - minLat) * Math.random();
   randomLat = Math.round(randomLat * 100000) / 100000;
   var randomLong = minLong + (maxLong - minLong) * Math.random();
   randomLong = Math.round(randomLong * 100000) / 100000;
   
+  //give the squad a random name, e.g., "Squad3"
   var name = squadNames[getRandomInt(0, squadNames.length-1)];
   name = name + (squadCount + 1);
 
   var ID = getNewForceID();
 
+  //add the squad's data to firebase
   forces.doc().set({
     Date_Time: Date.now(),
     Type: "Squad",
@@ -526,17 +570,21 @@ function initializeSquad(minLat, maxLat, minLong, maxLong) {
   return ID;
 }
 
+//add a new enemy unit to firebase
 function initializeEnemyUnit(minLat, maxLat, minLong, maxLong) {
+  //give the enemy unit a random location within the allowed bounds
   var randomLat = minLat + (maxLat - minLat) * Math.random();
   randomLat = Math.round(randomLat * 100000) / 100000;
   var randomLong = minLong + (maxLong - minLong) * Math.random();
   randomLong = Math.round(randomLong * 100000) / 100000;
   
+  //give the enemy unit a random name, e.g., "Enemy3"
   var name = enemyUnitNames[getRandomInt(0, enemyUnitNames.length-1)];
   name = name + (enemyUnitCount + 1);
 
   var ID = getNewForceID();
 
+  //add the enemy unit's data to firebase
   forces.doc().set({
     Date_Time: Date.now(),
     Type: "Enemy Unit",
@@ -551,17 +599,21 @@ function initializeEnemyUnit(minLat, maxLat, minLong, maxLong) {
   return ID;
 }
 
+//add a new target to firebase
 function initializePreplannedTarget(minLat, maxLat, minLong, maxLong) {
+  //give the target a random location within the allowed bounds
   var randomLat = minLat + (maxLat - minLat) * Math.random();
   randomLat = Math.round(randomLat * 100000) / 100000;
   var randomLong = minLong + (maxLong - minLong) * Math.random();
   randomLong = Math.round(randomLong * 100000) / 100000;
   
+  //give the target a random name like "Target2"
   var name = preplannedTargetNames[getRandomInt(0, preplannedTargetNames.length-1)];
   name = name + (preplannedTargetCount + 1);
 
   var ID = getNewForceID();
 
+  //add the target's data to firebase
   forces.doc().set({
     Date_Time: Date.now(),
     Type: "Preplanned Target",
@@ -576,10 +628,12 @@ function initializePreplannedTarget(minLat, maxLat, minLong, maxLong) {
   return ID;
 }
 
+//generates an appropriate force id
 function getNewForceID() {
   var randomID = guidGenerator();
   var exists = false;
 
+  //check if the "forces" collection already has data with the same force ID
   var query = forces.where("ID", "==", randomID);
   query.get().then(snap => {
     size = snap.size;
@@ -587,6 +641,7 @@ function getNewForceID() {
      exists = true;
   })
 
+  //generate force IDs until one is not found in the "forces" collection
   while (exists) {
     randomID = guidGenerator();
 
@@ -600,6 +655,7 @@ function getNewForceID() {
   return randomID;
 }
 
+//generates a random string
 function guidGenerator() {
     var S4 = function() {
        return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
@@ -607,73 +663,92 @@ function guidGenerator() {
     return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
 }
 
+//generates sensor data that conforms to the users's specifications
 function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numAsset, numHeartRate, numMoisture, numTemp, duration) {
   console.log("generating sensor data");
-  var vibrationSensors = [];
-  var assetSensors = [];
-  var heartRateSensors = [];
-  var moistureSensors = [];
-  var tempSensors = [];
+  var vibrationSensors = []; //ids of generatd vibration sensors
+  var assetSensors = []; //ids of generatd asset sensors
+  var heartRateSensors = []; //ids of generatd heart rate sensors
+  var moistureSensors = []; //ids of generatd moisture sensors
+  var tempSensors = []; //ids of generatd temperature sensors
 
+  //generate the average temperature and moisture level for the area, forms a baseline for generating temperature and moisture sensors
   var averageTempVal = randn_bm(-10,100,0.5);
   var averageMoistureVal = randn_bm(40,80,1);
 
   console.log("determined average temperature and average moisture level");
 
+  //generate vibration sensors
   for (var i = 0; i < numVibration; i++) {
+    //give the sensor a random location within the allowed bounds
     var randomLat = minLat + (maxLat - minLat) * Math.random();
     randomLat = Math.round(randomLat * 100000) / 100000;
     var randomLong = minLong + (maxLong - minLong) * Math.random();
     randomLong = Math.round(randomLong * 100000) / 100000;
     var randomSensorID = getNewRandomSensorID();
+    //finish generating the sensor and add it to firebase
     initializeVibrationSensor(randomLat, randomLong, randomSensorID);
     vibrationSensors.push(randomSensorID);
   }
   console.log("initialized vibration sensors");
 
+  //generate asset sensors
   for (var i = 0; i < numAsset; i++) {
+    //give the sensor a random location within the allowed bounds
     var randomLat = minLat + (maxLat - minLat) * Math.random();
     randomLat = Math.round(randomLat * 100000) / 100000;
     var randomLong = minLong + (maxLong - minLong) * Math.random();
     randomLong = Math.round(randomLong * 100000) / 100000;
     var randomSensorID = getNewRandomSensorID();
+    //finish generating the sensor and add it to firebase
     initializeAssetSensor(randomLat, randomLong, randomSensorID);
     assetSensors.push(randomSensorID);
   }
   console.log("initialized asset sensors");
 
+  //generate heart rate sensors
   for (var i = 0; i < numHeartRate; i++) {
+    //give the sensor a random location within the allowed bounds
     var randomLat = minLat + (maxLat - minLat) * Math.random();
     randomLat = Math.round(randomLat * 100000) / 100000;
     var randomLong = minLong + (maxLong - minLong) * Math.random();
     randomLong = Math.round(randomLong * 100000) / 100000;
     var randomSensorID = getNewRandomSensorID();
+    //finish generating the sensor and add it to firebase
     initializeHeartRateSensor(randomLat, randomLong, randomSensorID);
     heartRateSensors.push(randomSensorID);
   }
   console.log("initialized heart rate sensors");
 
+  //generate moisture sensors
   for (var i = 0; i < numMoisture; i++) {
+    //give the sensor a random location within the allowed bounds
     var randomLat = minLat + (maxLat - minLat) * Math.random();
     randomLat = Math.round(randomLat * 100000) / 100000;
     var randomLong = minLong + (maxLong - minLong) * Math.random();
     randomLong = Math.round(randomLong * 100000) / 100000;
     var randomSensorID = getNewRandomSensorID();
+    //give the moisture sensor a random moisture level that's near the average moisture level
     var moistureVal = randn_bm(averageMoistureVal-5, averageMoistureVal+5, 1);
     moistureVal = Math.round(moistureVal*10) / 10;
+    //finish generating the sensor and add it to firebase
     initializeMoistureSensor(randomLat, randomLong, randomSensorID, moistureVal);
     moistureSensors.push(randomSensorID);
   }
   console.log("initialized moisture sensors");
 
+  //generate temperature sensors
   for (var i = 0; i < numTemp; i++) {
+    //give the sensor a random location within the allowed bounds
     var randomLat = minLat + (maxLat - minLat) * Math.random();
     randomLat = Math.round(randomLat * 100000) / 100000;
     var randomLong = minLong + (maxLong - minLong) * Math.random();
     randomLong = Math.round(randomLong * 100000) / 100000;
     var randomSensorID = getNewRandomSensorID();
+    //give the temperature sensor a random temperature that's near the average temperature
     var tempVal = randn_bm(averageTempVal-5, averageTempVal+5, 1);
     tempVal = Math.round(tempVal*10) / 10;
+    //finish generating the sensor and add it to firebase
     initializeTempSensor(randomLat, randomLong, randomSensorID, tempVal);
     tempSensors.push(randomSensorID);
   }
@@ -681,37 +756,51 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
 
   var startTime = Date.now();
 
+  //the intervals determine how often different types of sensors should push updates to firebase
   var vibrationSensorInterval = setInterval(tripRandomVibrationSensor, 60 * 1000);
   var heartRateSensorInterval = setInterval(updateHeartRateSensors, 15 * 1000);
   var assetSensorInterval = setInterval(updateAssetSensors, 60 * 1000);
   var moistureSensorInterval = setInterval(updateMoistureSensors, 30 * 1000);
   var tempSensorInterval = setInterval(updateTempSensors, 30 * 1000);
 
+  //trips a vibration sensor, i.e., give it a value above 0
   function tripRandomVibrationSensor() {
     console.log("tripping vibration sensor");
+    //stop tripping vibration sensors if the duration for generating data has elapsed
     if (Date.now() - startTime > duration) {
       clearInterval(vibrationSensorInterval);
       return;
     }
 
+    //randomly choose a vibration sensor to trip
     var randomIndex = getRandomInt(0, vibrationSensors.length - 1);
     var randomSensorID = vibrationSensors[randomIndex];
     console.log("tripping vibration sensor with Sensor_ID = " + randomSensorID);
+    //get the vibration sensor's last update from firebase
     var query = sensors.where("Sensor_ID", "==", randomSensorID).orderBy("Date_Time", "desc").limit(1);
     query.get().then(results => {
         if (!results.empty) {
           var doc = results.docs[0];
           var sensorHealth = doc.get("SensorHealth");
           var battery = doc.get("Battery");
+          //don't trip vibration sensors that have health issues or 0 battery
           if (sensorHealth != "EOL" || sensorHealth != "Service" || battery != 0) {
             var lat = doc.get("Lat");
             var long = doc.get("Long");
+            //lower the battery a bit
             if (Math.random() < 0.1)
                 battery--;
             if (battery < 0)
               battery = 0;
+            //change the health randomly
+              if (Math.random() < 0.01)
+                sensorHealth = "Service";
+              if (Math.random() < 0.01)
+                sensorHealth = "EOL";
+            //get random value for the sensor
             var sensorVal = randn_bm(50,250,1);
             sensorVal = Math.round(sensorVal*10)/10;
+            //add the data to firebase
             sensors.doc().set({
               Date_Time: Date.now(),
               Lat: lat,
@@ -727,15 +816,19 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
     })
   }
 
+  //have each asset sensor push an update to firebase
   function updateAssetSensors() {
     console.log("updating asset sensors");
+    //stop updating asset sensors if the duration for generating data has elapsed
     if (Date.now() - startTime > duration) {
       clearInterval(assetSensorInterval);
       return;
     }
 
+    //have every asset sensor push an update to firebase
     for (var i = 0; i < assetSensors.length; i++) {
       var sensorID = assetSensors[i];
+      //get the asset sensor's last update from firebase
       var query = sensors.where("Sensor_ID", "==", sensorID).orderBy("Date_Time", "desc").limit(1);
       (function (sensorID) {
         query.get().then(results => {
@@ -743,14 +836,22 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
             var doc = results.docs[0];
             var sensorHealth = doc.get("SensorHealth");
             var battery = doc.get("Battery");
+            //don't udpate a sensor with bad health or no battery left
             if (sensorHealth != "EOL" || sensorHealth != "Service" || battery != 0) {
               var lat = doc.get("Lat");
               var long = doc.get("Long");
               var sensorVal = doc.get("Sensor_Val");
+              //lower the battery a bit
               if (Math.random() < 0.02)
                 battery--;
               if (battery < 0)
                 battery = 0;
+              //change the health randomly
+              if (Math.random() < 0.01)
+                sensorHealth = "Service";
+              if (Math.random() < 0.01)
+                sensorHealth = "EOL";
+              //add the data to firebase
               sensors.doc().set({
                 Date_Time: Date.now(),
                 Lat: lat,
@@ -768,15 +869,18 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
     }
   }
 
+  //have all the heart rate sensors push updates to firebase
   function updateHeartRateSensors() {
     console.log("updating heart rate sensors");
+    //stop updating heart rate sensors if the duration for generating data has elapsed
     if (Date.now() - startTime > duration) {
       clearInterval(heartRateSensorInterval);
       return;
     }
-
+    //have every heart rate sensor push an update to firebase
     for (var i = 0; i < heartRateSensors.length; i++) {
       var sensorID = heartRateSensors[i];
+      //get the heart rate sensor's last update from firebase
       var query = sensors.where("Sensor_ID", "==", sensorID).orderBy("Date_Time", "desc").limit(1);
       (function (sensorID) {
         query.get().then(results => {
@@ -784,20 +888,30 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
             var doc = results.docs[0];
             var sensorHealth = doc.get("SensorHealth");
             var battery = doc.get("Battery");
+            //don't update a heart rate sensor with bad health or 0 battery
             if (sensorHealth != "EOL" || sensorHealth != "Service" || battery != 0) {
+              //adjust the heart rate sensor's location a bit
               var lat = doc.get("Lat");
               lat = lat + randn_bm(-0.001, 0.001, 1);
               lat = Math.round(lat * 100000) / 100000;
               var long = doc.get("Long");
               long = long + randn_bm(-0.001, 0.001, 1);
               long = Math.round(long * 100000) / 100000;
+              //update the heart rate sensor's value a bit
               var sensorVal = doc.get("Sensor_Val");
               sensorVal = sensorVal + randn_bm(-10,10,1);
               sensorVal = Math.round(sensorVal);
+              //lower the heart rate sensor's battery a bit
               if (Math.random() < 0.02)
                 battery--;
               if (battery < 0)
                 battery = 0;
+              //change the health randomly
+              if (Math.random() < 0.01)
+                sensorHealth = "Service";
+              if (Math.random() < 0.01)
+                sensorHealth = "EOL";
+              //add the data to firebase
               sensors.doc().set({
                 Date_Time: Date.now(),
                 Lat: lat,
@@ -815,15 +929,19 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
     }
   }
 
+  //have all the moisture sensors push updates to firebase
   function updateMoistureSensors() {
     console.log("updating moisture sensors");
+    //stop updating moisture sensors if the duration for generating data has elapsed
     if (Date.now() - startTime > duration) {
       clearInterval(moistureSensorInterval);
       return;
     }
 
+    //have every moisture sensor push an update
     for (var i = 0; i < moistureSensors.length; i++) {
       var sensorID = moistureSensors[i];
+      //get the moisture sensor's last update from firebase
       var query = sensors.where("Sensor_ID", "==", sensorID).orderBy("Date_Time", "desc").limit(1);
       (function (sensorID) {
         query.get().then(results => {
@@ -831,18 +949,27 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
             var doc = results.docs[0];
             var sensorHealth = doc.get("SensorHealth");
             var battery = doc.get("Battery");
+            //don't update a sensor with bad health or 0 battery
             if (sensorHealth != "EOL" || sensorHealth != "Service" || battery != 0) {
               var lat = doc.get("Lat");
               var long = doc.get("Long");
+              //change the value a bit
               var sensorVal = doc.get("Sensor_Val");
               sensorVal = sensorVal + randn_bm(-10,10,1);
               sensorVal = Math.round(sensorVal);
               if (sensorVal > 100)
                 sensorVal = 100;
+              //lower the battery a bit
               if (Math.random() < 0.02)
                 battery--;
               if (battery < 0)
                 battery = 0;
+              //change the health randomly
+              if (Math.random() < 0.01)
+                sensorHealth = "Service";
+              if (Math.random() < 0.01)
+                sensorHealth = "EOL";
+              //add the data to firebase
               sensors.doc().set({
                 Date_Time: Date.now(),
                 Lat: lat,
@@ -860,15 +987,19 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
     }
   }
 
+  //have all the temp sensors push updates to firebase
   function updateTempSensors() {
-    console.log("updating temp sensors");
+    console.log("updating temperature sensors");
+    //stop updating temperature sensors if the duration for generating data has elapsed
     if (Date.now() - startTime > duration) {
       clearInterval(tempSensorInterval);
       return;
     }
 
+    //have every temperature sensor push an update to firebase
     for (var i = 0; i < tempSensors.length; i++) {
       var sensorID = tempSensors[i];
+      //get the sensor's last update from firebase
       var query = sensors.where("Sensor_ID", "==", sensorID).orderBy("Date_Time", "desc").limit(1);
       (function (sensorID) {
         query.get().then(results => {
@@ -876,18 +1007,27 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
             var doc = results.docs[0];
             var sensorHealth = doc.get("SensorHealth");
             var battery = doc.get("Battery");
+            //don't update a sensor with bad health or 0 battery
             if (sensorHealth != "EOL" || sensorHealth != "Service" || battery != 0) {
               var lat = doc.get("Lat");
               var long = doc.get("Long");
+              //change the sensor's value a bit
               var sensorVal = doc.get("Sensor_Val");
               sensorVal = sensorVal + randn_bm(-5,5,1);
               sensorVal = Math.round(sensorVal*10)/10;
               if (sensorVal > 100)
                 sensorVal = 100;
+              //lower the battery a bit
               if (Math.random() < 0.02)
                 battery--;
               if (battery < 0)
                 battery = 0;
+              //change the health randomly
+              if (Math.random() < 0.01)
+                sensorHealth = "Service";
+              if (Math.random() < 0.01)
+                sensorHealth = "EOL";
+              //add the data to firebase
               sensors.doc().set({
                 Date_Time: Date.now(),
                 Lat: lat,
@@ -906,10 +1046,12 @@ function generateSensorData(minLat, minLong, maxLat, maxLong, numVibration, numA
   }
 }
 
+//gets a random, unique sensor ID
 function getNewRandomSensorID() {
   var randomSensorID = getRandomInt(0,999999);
   var exists = false;
 
+  //check if the sensor id is already present in the "sensors" collection
   var query = sensors.where("Sensor_ID", "==", randomSensorID);
   query.get().then(snap => {
     size = snap.size;
@@ -917,6 +1059,7 @@ function getNewRandomSensorID() {
      exists = true;
   })
 
+  //get new IDs until the id is not taken
   while (exists) {
     randomSensorID = getRandomInt(0,999999);
 
@@ -930,6 +1073,7 @@ function getNewRandomSensorID() {
   return randomSensorID;
 }
 
+//returns a random number between min and max, approximately normally distributed
 function randn_bm(min, max, skew) {
     var u = 0, v = 0;
     while(u === 0) u = Math.random(); //Converting [0,1) to (0,1)
@@ -950,7 +1094,7 @@ function getRandomInt(min, max) {
 }
 
 
-
+//adds a vibration sensor to firebase
 function initializeVibrationSensor(lat, long, sensorID) {
   sensors.doc().set({
     Date_Time: Date.now(),
@@ -964,6 +1108,7 @@ function initializeVibrationSensor(lat, long, sensorID) {
   });
 }
 
+//adds an asset sensor to firebase
 function initializeAssetSensor(lat, long, sensorID) {
   sensors.doc().set({
     Date_Time: Date.now(),
@@ -977,6 +1122,7 @@ function initializeAssetSensor(lat, long, sensorID) {
   });
 }
 
+//adds a heart rate sensor to firebase
 function initializeHeartRateSensor(lat, long, sensorID) {
   sensors.doc().set({
     Date_Time: Date.now(),
@@ -990,6 +1136,7 @@ function initializeHeartRateSensor(lat, long, sensorID) {
   });
 }
 
+//adds a moisture sensor to firebase
 function initializeMoistureSensor(lat, long, sensorID, moistureVal) {
   sensors.doc().set({
     Date_Time: Date.now(),
@@ -1003,6 +1150,7 @@ function initializeMoistureSensor(lat, long, sensorID, moistureVal) {
   });
 }
 
+//adds a temperature sensor to firebase
 function initializeTempSensor(lat, long, sensorID, tempVal) {
   sensors.doc().set({
     Date_Time: Date.now(),
