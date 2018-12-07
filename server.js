@@ -247,15 +247,12 @@ function pushNotification(id, sender, priority, message) {
       registrationTokens.push(doc.data().id); 
       console.log(doc.data().id);  
     })
-    .then(
-      sender.sendNoRetry(message, { registrationTokens: regTokens }, function(err, response) {
-        if (err)
-          console.error(err);
-        else
-          console.log(response);
-      })
-    );
-
+    sender.sendNoRetry(message, { registrationTokens: regTokens }, function(err, response) {
+      if (err)
+        console.error(err);
+      else
+        console.log(response);
+    });
   });
 }
 
