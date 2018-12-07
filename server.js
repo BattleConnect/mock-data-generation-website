@@ -244,7 +244,7 @@ function pushNotification(id, sender, priority, message) {
   //send notifications to all devices
   users.get().then(snapshot => {
     snapshot.forEach(doc => {
-      registrationTokens.push(doc.data().id); 
+      regTokens.push(doc.data().id); 
       console.log(doc.data().id);  
     })
     sender.sendNoRetry(message, { registrationTokens: regTokens }, function(err, response) {
