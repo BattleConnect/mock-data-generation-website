@@ -7,6 +7,15 @@ require('firebase/auth');
 require('firebase/firestore');
 require('dotenv').config();
 
+var admin = require("firebase-admin");
+
+var serviceAccount = require("path/to/serviceAccountKey.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://battle-connect.firebaseio.com"
+});
+
 const PORT = process.env.PORT || 5000;
 
 app.use(bodyParser());
@@ -236,7 +245,7 @@ function pushNotification(id, sender, priority, message) {
   });
   
   // Set up the sender with you API key
-  var sender = new gcm.Sender('AAAAL5LrE4o:APA91bGISR2ZHJGZNN-TnghL0Z16a7Uw3TJyZaR2KVdsPYUcEPPFte8yAWOhDJLIVi6UihVoepu0OOs32OptAytOlrww344GQM-6AktG6sustK6455mD0uEjBvvQuq7BsrSt-qCAr5yX');
+  var sender = new gcm.Sender('AAAAL5LrE4o:APA91bF7kmEf180fNCAUEX1fkyqObgq_ZY88zYyq-g5SwrVvYf7XNTnusPrvbpGs2Fz8OoqjbcvbDX7HTHHJimF2EjMWQvNkj1ItNKVUysJZ6BCfxU76YqlgQOuEcr2UCJXfsC-Iegcl');
   
   // Add the registration tokens of the devices you want to send to
   var registrationTokens = [];
@@ -251,8 +260,8 @@ function pushNotification(id, sender, priority, message) {
     // Send the message
     // ... trying only once
     sender.sendNoRetry(message, { registrationTokens: registrationTokens }, function(err, response) {
-      if(err) console.error(err);
-      else    console.log(response);
+      if (err) console.error(err);
+      else console.log(response);
     });
   });
 }
