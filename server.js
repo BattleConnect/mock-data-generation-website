@@ -7,11 +7,6 @@ require('firebase/auth');
 require('firebase/firestore');
 require('dotenv').config();
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://battle-connect.firebaseio.com"
-});
-
 const PORT = process.env.PORT || 5000;
 
 app.use(bodyParser());
