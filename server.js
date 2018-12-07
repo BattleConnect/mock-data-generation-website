@@ -224,7 +224,7 @@ function pushNotification(id, sender, priority, message) {
       contentAvailable: true,
       delayWhileIdle: true,
       timeToLive: 3,
-      restrictedPackageName: "com.cs495.battleconnect.activities",
+      restrictedPackageName: "com.cs495.battleconnect",
       data: {
           id: id,
           sender: sender,
@@ -242,11 +242,10 @@ function pushNotification(id, sender, priority, message) {
   var regTokens = [];
 
   //send notifications to all devices
-  users.get().then(snapshot => {
-    snapshot.forEach(doc => {
+  users.get().then(function(querySnapshot) {
+    querySnapshot.forEach(function(doc) {
       regTokens.push(doc.data().id); 
-      console.log(doc.data().id);  
-    })
+    });
     sender.sendNoRetry(message, { registrationTokens: regTokens }, function(err, response) {
       if (err)
         console.error(err);
