@@ -3,6 +3,7 @@ const app = express();
 var bodyParser = require('body-parser');
 var path = require('path');
 var firebase = require('firebase/app');
+require('firebase/auth');
 require('firebase/firestore');
 require('dotenv').config();
 
@@ -10,8 +11,45 @@ const PORT = process.env.PORT || 5000;
 
 app.use(bodyParser());
 
+// Initialize Firebase
+var config = {
+	apiKey: process.env.FIREBASE_APIKEY,
+	authDomain: "battle-connect.firebaseapp.com",
+	databaseURL: "https://battle-connect.firebaseio.com/",
+	projectId: "battle-connect",
+};
+firebase.initializeApp(config);
+
+app.post('/login', function (req, res) {
+  if (!req.body.email) return res.status(400).json({error: 'missing email'});
+  if (!req.body.password) return res.status(400).json({error: 'missing password'});
+
+  firebase.auth().setPersistence(firebase.auth.Auth.Persistence.NONE) // don't persist auth session
+    .then(function() {
+      return firebase.auth().signInWithEmailAndPassword(req.body.email, req.body.password)
+    })
+    .then((user) => {
+      if (user != null) {
+        res.sendFile(path.join(__dirname + '/index.html'));
+      }
+      //let uid = user.uid;
+
+      // // set cookie with UID or some other form of persistence
+      // // such as the Authorization header
+      // res.cookie('__session', { uid: uid }, { signed: true, maxAge: 3600 });
+      // res.set('cache-control', 'max-age=0, private') // may not be needed. Good to have if behind a CDN.
+      // res.send('You have successfully logged in');
+
+      // return firebase.auth().signOut(); //clears session from memory
+    })
+    .catch((err) => {
+      //next(err);
+      res.status(400).json({error: 'wrong credentials'});
+    });
+});
+
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname + '/index.html'));
+  res.sendFile(path.join(__dirname + '/login.html'));
 });
 
 app.get('/notification.html', (req, res) => {
@@ -76,16 +114,6 @@ app.post('/delete-sensor-data', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on ${PORT}/`);
 });
-
-
-// Initialize Firebase
-var config = {
-	apiKey: process.env.FIREBASE_APIKEY,
-	authDomain: "battle-connect.firebaseapp.com",
-	databaseURL: "https://battle-connect.firebaseio.com/",
-	projectId: "battle-connect",
-};
-firebase.initializeApp(config);
 
 const firestore = firebase.firestore();
 const settings = {/* your settings... */ timestampsInSnapshots: true};
@@ -193,7 +221,7 @@ function pushNotification(id, sender, priority, message) {
       contentAvailable: true,
       delayWhileIdle: true,
       timeToLive: 3,
-      restrictedPackageName: "com.cs495.battleconnect",
+      restrictedPackageName: "com.cs495.battleconnect.activities",
       data: {
           id: id,
           sender: sender,
@@ -201,7 +229,7 @@ function pushNotification(id, sender, priority, message) {
           message: message
       },
       notification: {
-          title: "BattleElite",
+          title: "BattleConnect",
           icon: "ic_launcher_background",
           body: message
       }

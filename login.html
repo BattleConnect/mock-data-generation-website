@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BattleConnect Mock Data Manager</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+</head>
+<body>
+	<h3>Please login.</h3>
+		Email: <input id="email" type="text" name="email">
+		<br>
+		Password: <input id="password" type="password" name="password">
+		<br>
+	    <Button type="submit" id="btnLogin">Login</Button>
+
+    <script>
+        $('#btnLogin').click(function() {
+            $.ajax({
+                url: '/login',
+                type:'POST',
+                data:
+                {
+                    email: $('#email').val(),
+                    password: $('#password').val()
+                },
+                success: function(msg)
+                {
+                    console.log("success");
+                    $("html").html(msg);
+                },
+                error: function(xhr, status, error) {
+                    if (xhr.responseJSON.error == "missing password")
+                        alert("Password cannot be empty. Please enter a password.");
+                    else if (xhr.responseJSON.error == "missing email")
+                        alert("Email cannot be empty. Please enter an email.");
+                    else if (xhr.responseJSON.error == "wrong credentials")
+                        alert("Invalid credentials. Please try again.");
+                }            
+            });
+        });
+    </script>
+</body>
+</html>
