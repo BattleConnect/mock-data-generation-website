@@ -6,10 +6,13 @@ var firebase = require('firebase/app');
 require('firebase/auth');
 require('firebase/firestore');
 require('dotenv').config();
+const gcm = require('node-gcm');
 
 const PORT = process.env.PORT || 5000;
 
 app.use(bodyParser());
+
+var userAuthenticated = false;
 
 // Initialize Firebase
 var config = {
@@ -30,9 +33,10 @@ app.post('/login', function (req, res) {
     })
     .then((user) => {
       if (user != null) {
+        userAuthenticated = true;
         res.sendFile(path.join(__dirname + '/index.html'));
       }
-      //let uid = user.uid;
+      // let uid = user.uid;
 
       // // set cookie with UID or some other form of persistence
       // // such as the Authorization header
@@ -53,10 +57,16 @@ app.get('/', (req, res) => {
 });
 
 app.get('/notification.html', (req, res) => {
+  if (!userAuthenticated) {
+    return res.status(400).json({error: 'user has not been authenticated'});
+  }
   res.sendFile(path.join(__dirname + '/notification.html'));
 });
 
 app.post('/generate-sensor-data', (req, res) => {
+  if (!userAuthenticated) {
+    return res.status(400).json({error: 'user has not been authenticated'});
+  }
   res.send(200);
   var minLat = parseFloat(req.body.minLat);
   var minLong = parseFloat(req.body.minLong);
@@ -73,6 +83,9 @@ app.post('/generate-sensor-data', (req, res) => {
 });
 
 app.post('/generate-notification', (req, res) => {
+  if (!userAuthenticated) {
+    return res.status(400).json({error: 'user has not been authenticated'});
+  }
   var id = req.body.notificationID;
   var sender = req.body.sender;
   var priority = req.body.priority;
@@ -87,6 +100,9 @@ app.post('/generate-notification', (req, res) => {
 }); 
 
 app.post('/generate-force-tracking-data', (req, res) => {
+  if (!userAuthenticated) {
+    return res.status(400).json({error: 'user has not been authenticated'});
+  }
   res.send(200);
   var minLat = parseFloat(req.body.minLat);
   var minLong = parseFloat(req.body.minLong);
@@ -102,11 +118,17 @@ app.post('/generate-force-tracking-data', (req, res) => {
 });
 
 app.post('/delete-force-tracking-data', (req, res) => {
+  if (!userAuthenticated) {
+    return res.status(400).json({error: 'user has not been authenticated'});
+  }
   res.send(200);
   deleteForceTrackingData();
 });
 
 app.post('/delete-sensor-data', (req, res) => {
+  if (!userAuthenticated) {
+    return res.status(400).json({error: 'user has not been authenticated'});
+  }
   res.send(200);
   deleteSensorData();
 });
@@ -212,46 +234,35 @@ function generateNotification(id, sender, priority, message) {
 
 //pushes a notification to a specific device
 function pushNotification(id, sender, priority, message) {
-  var gcm = require('node-gcm');
- 
-  // Set up the sender with you API key
-  var sender = new gcm.Sender('AAAAL5LrE4o:APA91bF7kmEf180fNCAUEX1fkyqObgq_ZY88zYyq-g5SwrVvYf7XNTnusPrvbpGs2Fz8OoqjbcvbDX7HTHHJimF2EjMWQvNkj1ItNKVUysJZ6BCfxU76YqlgQOuEcr2UCJXfsC-Iegcl');
-  
   // Create a message
   var message = new gcm.Message({
-      collapseKey: 'demo',
-      priority: 'high',
-      contentAvailable: true,
-      delayWhileIdle: true,
-      timeToLive: 3,
-      restrictedPackageName: "com.cs495.battleconnect",
-      data: {
-          id: id,
-          sender: sender,
-          priority: priority,
-          message: message
-      },
-      notification: {
-          title: "BattleConnect",
-          icon: "ic_launcher_background",
-          body: message
+    priority: 'high',
+    timeToLive: 3,
+    data: {
+        id: id,
+        sender: sender,
+        priority: priority,
+        message: message
+    },
+    notification: {
+        title: "BattleConnect",
+        icon: "ic_launcher_background",
+        body: message
       }
   });
+
+  var sender = new gcm.Sender('AAAAL5LrE4o:APA91bF7kmEf180fNCAUEX1fkyqObgq_ZY88zYyq-g5SwrVvYf7XNTnusPrvbpGs2Fz8OoqjbcvbDX7HTHHJimF2EjMWQvNkj1ItNKVUysJZ6BCfxU76YqlgQOuEcr2UCJXfsC-Iegcl');
   
   // Add the registration tokens of the devices you want to send to
   var regTokens = [];
-
-  //send notifications to all devices
   users.get().then(function(querySnapshot) {
     querySnapshot.forEach(function(doc) {
       regTokens.push(doc.data().id); 
     });
-    sender.sendNoRetry(message, { registrationTokens: regTokens }, function(err, response) {
-      if (err)
-        console.error(err);
-      else
-        console.log(response);
-    });
+    sender.send(message, regTokens, 10, function (err, result) {
+      if(err) console.error(err);
+      else console.log(result);
+    })
   });
 }
 
