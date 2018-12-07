@@ -214,6 +214,9 @@ function generateNotification(id, sender, priority, message) {
 function pushNotification(id, sender, priority, message) {
   var gcm = require('node-gcm');
  
+  // Set up the sender with you API key
+  var sender = new gcm.Sender('AAAAL5LrE4o:APA91bF7kmEf180fNCAUEX1fkyqObgq_ZY88zYyq-g5SwrVvYf7XNTnusPrvbpGs2Fz8OoqjbcvbDX7HTHHJimF2EjMWQvNkj1ItNKVUysJZ6BCfxU76YqlgQOuEcr2UCJXfsC-Iegcl');
+  
   // Create a message
   var message = new gcm.Message({
       collapseKey: 'demo',
@@ -235,25 +238,24 @@ function pushNotification(id, sender, priority, message) {
       }
   });
   
-  // Set up the sender with you API key
-  var sender = new gcm.Sender('AAAAL5LrE4o:APA91bF7kmEf180fNCAUEX1fkyqObgq_ZY88zYyq-g5SwrVvYf7XNTnusPrvbpGs2Fz8OoqjbcvbDX7HTHHJimF2EjMWQvNkj1ItNKVUysJZ6BCfxU76YqlgQOuEcr2UCJXfsC-Iegcl');
-  
   // Add the registration tokens of the devices you want to send to
-  var registrationTokens = [];
+  var regTokens = [];
 
   //send notifications to all devices
   users.get().then(snapshot => {
     snapshot.forEach(doc => {
       registrationTokens.push(doc.data().id); 
       console.log(doc.data().id);  
-    });
+    })
+    .then(
+      sender.sendNoRetry(message, { registrationTokens: regTokens }, function(err, response) {
+        if (err)
+          console.error(err);
+        else
+          console.log(response);
+      })
+    );
 
-    // Send the message
-    // ... trying only once
-    sender.sendNoRetry(message, { registrationTokens: registrationTokens }, function(err, response) {
-      if (err) console.error(err);
-      else console.log(response);
-    });
   });
 }
 
